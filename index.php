@@ -7,16 +7,16 @@ require 'RedBean/rb.php';
 \Slim\Slim::registerAutoloader();
 
 // set up database connection
-R::setup('mysql:host=localhost;dbname=rest','root','');
+R::setup('mysql:host=localhost;dbname=plan','root','');
 R::freeze(true);
 
 // initialize app
 $app = new \Slim\Slim();
 
 // handle GET requests for /articles
-$app->get('/articles', function () use ($app) {  
+$app->get('/plan', function () use ($app) {  
   // query database for all articles
-  $articles = R::find('articles'); 
+  $articles = R::find('plan'); 
   
   // send response header for JSON content type
   $app->response()->header('Content-Type', 'application/json');
@@ -28,15 +28,40 @@ $app->get('/articles', function () use ($app) {
 class ResourceNotFoundException extends Exception {}
 
 // handle GET requests for /articles/:id
-$app->get('/articles/:id', function ($id) use ($app) {    
+$app->get('/plan/:id', function ($id) use ($app) {    
   try {
     // query database for single article
-    $article = R::findOne('articles', 'id=?', array($id));
+    //$article = R::findOne('articles', 'id=?', array($id));
+      $plan = R::find('plan', 'klasa = ?', array($id));
     
-    if ($article) {
+    if ($plan) {
       // if found, return JSON response
       $app->response()->header('Content-Type', 'application/json');
-      echo json_encode(R::exportAll($article));
+      echo json_encode(R::exportAll($plan));
+    } else {
+      // else throw exception
+      throw new ResourceNotFoundException();
+    }
+  } catch (ResourceNotFoundException $e) {
+    // return 404 server error
+    $app->response()->status(404);
+  } catch (Exception $e) {
+    $app->response()->status(400);
+    $app->response()->header('X-Status-Reason', $e->getMessage());
+  }
+});
+
+// handle GET requests for /articles/:id
+$app->get('/plan/:id/:day', function ($id, $day) use ($app) {    
+  try {
+    // query database for single article
+    //$article = R::findOne('articles', 'id=?', array($id));
+      $plan = R::find('plan', "klasa = $id AND dzien = $day", array($id));
+    
+    if ($plan) {
+      // if found, return JSON response
+      $app->response()->header('Content-Type', 'application/json');
+      echo json_encode(R::exportAll($plan));
     } else {
       // else throw exception
       throw new ResourceNotFoundException();
