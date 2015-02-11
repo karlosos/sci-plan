@@ -3,11 +3,14 @@
 require 'Slim/Slim.php';
 require 'RedBean/rb.php';
 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // register Slim auto-loader
 \Slim\Slim::registerAutoloader();
 
 // set up database connection
-R::setup('mysql:host=localhost;dbname=plan','root','');
+R::setup('mysql:host=localhost;dbname=plan', 'root', '');
 R::freeze(true);
 
 // initialize app

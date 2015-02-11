@@ -7,7 +7,13 @@ R::setup('mysql:host=localhost;dbname=plan', 'root', '');
 ini_set('max_execution_time', 300); //300 seconds = 5 minutes
 
 Class Backend {
-    private function getList($i) {
+    private $godzny = array();
+    
+    function setGodzny($godzny) {
+        $this->godzny = $godzny;
+    }
+
+        private function getList($i) {
         $html = file_get_html('http://www.sci.edu.pl/plan/lista.html');
 
         $list = array();
@@ -20,34 +26,15 @@ Class Backend {
 
             $list[] = $row;
         }
-        
-//        $teachers = array();
-//        $ul = $html->find('ul', 1);
-//        foreach ($ul->find('li') as $li) {
-//            $row = array();
-//            $a = $li->find('a', 0);
-//            $nauczyciel = $a->href;
-//            $nauczyciel = substr($nauczyciel, 0, strlen($nauczyciel) - 5);
-//            $nauczyciel = substr($nauczyciel, 1);
-//            
-//            $row[] = $nauczyciel;
-//            $row[] = $a->plaintext;
-//
-//            $teachers[] = $row;
-//        }
-//        
-//        $this->listaNauczycieli($techears);
-        
-        
         return $list;
     }
 
     public function listaNauczycieli($array) {
         R::wipe('nauczyciele');
         
-        print_r($array);
+        //print_r($array);
         foreach($array as $nauczycielx) {
-            print_r($nauczycielx);
+            //print_r($nauczycielx);
             R::useWriterCache(true);
         
             $nauczyciel = R::dispense('nauczyciele');
@@ -65,12 +52,63 @@ Class Backend {
         }
     }
     
+    public function godziny($example) {
+        $html = file_get_html($example);
+        $plan = $html->find('.tabela', 0);
+        $godzinya = array();
+          for ($i = 1; $i <= 11; $i++) {
+                    $td = $plan->find('tr', $i)->find('td', 1);
+
+                    $godziny = $td->plaintext;
+                    
+                    if(strpos($godziny, " ") > strpos($godziny, "-")) {
+                        $start = substr($godziny, 0, strpos($godziny, " "));
+                        if (!strpos(" "))
+                            $stop = substr($godziny, strpos($godziny, "-"));
+                        else
+                            $stop = substr($godziny, strpos($godziny, " "));
+                    } else {
+                        if(strpos($godziny, " ")) {
+                        $start = substr($godziny, 0, strpos($godziny, "-"));
+                        } else 
+                            $start = substr($godziny, 0, strpos($godziny, " "));
+                        $stop = substr($godziny, strpos($godziny, "-"));
+                    }
+                    
+                    $start = trim($start);
+                    $stop = trim($stop);
+                    
+                    $godzina = array();
+                    $godzina[0] = $start;
+                    $godzina[1] = $stop;
+                    
+                    $godzinya[] = $godzina;
+          }
+          
+      echo '<br>------------------------------------- <br>';
+       print_r($godzinya);
+       echo '<br>------------------------------------- <br>';
+       
+       R::wipe('godziny');
+       foreach($godzinya as $i) {
+            R::useWriterCache(true);
+        
+            $godzina = R::dispense('godziny');
+            
+            $godzina->start = (string) $i[0];
+            $godzina->stop = (string) $i[1];
+            
+            $id = R::store($godzina);
+       }
+       $this->setGodzny($godzinya);
+    }
+    
     public function listaSal($array) {
         R::wipe('sale');
         
-        print_r($array);
+        //print_r($array);
         foreach($array as $salax) {
-            print_r($salax);
+            //print_r($salax);
             R::useWriterCache(true);
         
             $sala = R::dispense('sale');
@@ -93,7 +131,7 @@ Class Backend {
         
         $this->listaNauczycieli($this->getList(1));
         $this->listaSal($this->getList(2));
-        
+        $klasy = $this->getList(0);
         foreach ($this->getList(0) as $klasa) {
             $this->parseKlasa($klasa[0]);
         }
@@ -126,26 +164,31 @@ Class Backend {
             for ($j = 2; $j < 7; $j++) {
                 $row = array();
                 if($plan->find('tr', $i)) {
-                $td = $plan->find('tr', $i)->find('td', $j);
+                    $td = $plan->find('tr', $i)->find('td', $j);
 
-                $przedmiot = $td->find('span', 0)->plaintext;
-                $dzien = $j - 1;
-                $godzina = $i - 1;
+                    $dzien = $j - 1;
+                    $godzina = $i - 1;
 
-                if ($przedmiot) {
-                    $nauczyciel = $td->find('a', 0)->href;
-                    $sala = $td->find('a', 1)->href;
+                    if ($td->find('span', 0)) {
+                        $przedmiot = $td->find('span', 0)->plaintext;
+                        $nauczyciel = $td->find('a', 0)->href;
+                        if($td->find('a', 1))
+                            $sala = $td->find('a', 1)->href;
 
-                    $nauczyciel = substr($nauczyciel, 0, strlen($nauczyciel) - 5);
-                    $sala = substr($sala, 0, strlen($sala) - 5);
+                        $nauczyciel = substr($nauczyciel, 0, strlen($nauczyciel) - 5);
+                        $sala = substr($sala, 0, strlen($sala) - 5);
 
-                    $nauczyciel = substr($nauczyciel, 1);
-                    $sala = substr($sala, 1);
+                        $nauczyciel = substr($nauczyciel, 1);
+                        $sala = substr($sala, 1);
 
-                    $this->dodajWiersz($klasa, $dzien, $godzina, $nauczyciel, $przedmiot, $sala);
-                } else {
-                    $this->dodajWiersz($klasa, $dzien, $godzina, '', '', '');
-                }
+                        $this->dodajWiersz($klasa, $dzien, $godzina, $nauczyciel, $przedmiot, $sala);
+                    } else {
+                        $this->dodajWiersz($klasa, $dzien, $godzina, '', '', '');
+                    }
+                    
+                    if($i == 11 && empty($this->godzny)) {
+                        $this->godziny($link);
+                    }
             }
             }
         }
