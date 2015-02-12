@@ -61,19 +61,33 @@ Class Backend {
 
                     $godziny = $td->plaintext;
                     
-                    if(strpos($godziny, " ") > strpos($godziny, "-")) {
-                        $start = substr($godziny, 0, strpos($godziny, " "));
-                        if (!strpos(" "))
-                            $stop = substr($godziny, strpos($godziny, "-"));
-                        else
-                            $stop = substr($godziny, strpos($godziny, " "));
-                    } else {
-                        if(strpos($godziny, " ")) {
+                    if(strpos($godziny, " ")) {
+                        if(strpos($godziny, " ") > strpos($godziny, "-")) {
                         $start = substr($godziny, 0, strpos($godziny, "-"));
-                        } else 
-                            $start = substr($godziny, 0, strpos($godziny, " "));
-                        $stop = substr($godziny, strpos($godziny, "-"));
+                        $stop = substr($godziny, strpos($godziny, " ")+1);
+                    } else {
+                        $start = substr($godziny, 0, strpos($godziny, " "));
+                        $stop = substr($godziny, strpos($godziny, "-")+1);                    
+                        
                     }
+                    } else {
+                        $start = substr($godziny, 0, strpos($godziny, "-"));
+                        $stop = substr($godziny, strpos($godziny, "-")+1);             
+                    }
+                    
+//                    if(strpos($godziny, " ") > strpos($godziny, "-")) {
+//                        $start = substr($godziny, 0, strpos($godziny, "-"));
+//                        if (!strpos(" "))
+//                            $stop = substr($godziny, strpos($godziny, "-"));
+//                        else
+//                            $stop = substr($godziny, strpos($godziny, " "));
+//                    } else {
+//                        if(strpos($godziny, " ")) {
+//                        $start = substr($godziny, 0, strpos($godziny, "-"));
+//                        } else 
+//                            $start = substr($godziny, 0, strpos($godziny, " "));
+//                        $stop = substr($godziny, strpos($godziny, "-"));
+//                    }
                     
                     $start = trim($start);
                     $stop = trim($stop);
