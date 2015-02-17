@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 
 require 'Backend.php';
 
-$backend = new Backend();
+$backend = new SheduleManager();
 
-print_r($backend->getData());
+print_r($backend->updateAllData());
 

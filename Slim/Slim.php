@@ -719,7 +719,7 @@ class Slim
     public function view($viewClass = null)
     {
         if (!is_null($viewClass)) {
-            $existingData = is_null($this->view) ? array() : $this->view->getData();
+            $existingData = is_null($this->view) ? array() : $this->view->updateAllData();
             if ($viewClass instanceOf \Slim\View) {
                 $this->view = $viewClass;
             } else {
