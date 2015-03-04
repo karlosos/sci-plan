@@ -39,6 +39,10 @@ Class SheduleManager {
      */
     public function updateAllData() {
         // TODO make another function for creating copy of plan table
+        $plany = $this->downloadShedulesList(0);
+        if($this->downloadInfo($plany[0])) {
+        
+        
         R::wipe('plan');
 
         $this->updateTeachersList($this->downloadShedulesList(1));
@@ -47,8 +51,10 @@ Class SheduleManager {
         foreach ($this->downloadShedulesList(0) as $klasa) {
             $this->updateClassShedule($klasa[0]);
         }
+        }
     }
     
+  
     /**
      * Downloading shedules list
      * @param string $i
@@ -146,6 +152,53 @@ Class SheduleManager {
         }
         $this->setHoursList($hours_list);
     }
+    
+    public function downloadInfo($example_plan_url) {
+        //echo $example_plan_url[0];
+        $html = file_get_html($example_plan_url[0]);
+        //html/body/div/table/tbody/tr[2]/td
+        $info = $html->find('table' , 1)->children(1)->children(0)->plaintext;
+        $wygenerowane = $html->find('table' , 1)->children(2)->children(1)->plaintext;
+        
+        //$info = $html->find('div' , 0)->find('table', 0)->find('tbody', 0)->find('tr', 1)->find('td', 0)->plaintext;
+//        $div = $html->find('div', 0);
+//        $table = $div->find('table', 0);
+//        $tbody = $table->find('tbody', 0);
+//        //var_dump($table);
+//        $tr = $table->find('tr', 0);
+//        $info = $tr->find('td', 0)->plaintext;
+        //echo 'info: '.$info;
+        
+        $infos_prev = R::findAll( 'info' , ' ORDER BY id DESC LIMIT 10 ' );
+        $last = next($infos_prev);
+        $last_updated = $last->updated;
+        $last_id = $last->id;
+        $table_name = "plan".$last_id;
+        echo $table_name;
+        echo $info.' '. $last_updated;
+        if ($info != $last_updated ) {
+             R::begin();
+            try{
+                R::exec("CREATE TABLE ". $table_name ."LIKE plan;");
+                R::exec("INSERT ".$table_name." SELECT * FROM plan;");
+                R::commit();
+            }
+            catch(Exception $e) {
+                 echo 'CO JEST KURWA';
+                R::rollback();
+            }
+           
+            $info_db = R::dispense('info');
+            $info_db->updated = (string)$info;
+            $info_db->created = (string)$wygenerowane;
+            $id = R::store($info_db);
+            echo 'nowy plan!';
+            return true;
+        } else {
+            echo 'stary plan';
+            return false;
+        }
+    }
 
     /**
      * Updating room list in database
@@ -219,6 +272,23 @@ Class SheduleManager {
                     $godzina = $i - 1;
 
                     if ($td->find('span', 0)) {
+                        if($td->find('br', 0)) {
+                            for($i=0; $i<2; $i++) {
+                                $span = $td->find('span', $i);
+                                $przedmiot = $span->children(0)->plaintext;
+                                $nauczyciel = $span->children(1)->href;
+                                if ($span->children(2))
+                                    $sala = $span->children(2)->href;
+
+                                $nauczyciel = substr($nauczyciel, 0, strlen($nauczyciel) - 5);
+                                $sala = substr($sala, 0, strlen($sala) - 5);
+
+                                $nauczyciel = substr($nauczyciel, 1);
+                                $sala = substr($sala, 1);
+
+                                $this->putSheduleRow($klasa, $dzien, $godzina, $nauczyciel, $przedmiot, $sala);
+                            }
+                        } else {
                         $przedmiot = $td->find('span', 0)->plaintext;
                         $nauczyciel = $td->find('a', 0)->href;
                         if ($td->find('a', 1))
@@ -231,6 +301,7 @@ Class SheduleManager {
                         $sala = substr($sala, 1);
 
                         $this->putSheduleRow($klasa, $dzien, $godzina, $nauczyciel, $przedmiot, $sala);
+                        }
                     } else {
                         $this->putSheduleRow($klasa, $dzien, $godzina, '', '', '');
                     }
